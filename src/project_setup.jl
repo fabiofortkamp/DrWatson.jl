@@ -47,10 +47,10 @@ end
 Return the name of the currently active project.
 """
 projectname() = _projectname(try
-                                Pkg.Types.read_project(Base.active_project())
-                             catch
-                                nothing
-                             end)
+    Pkg.Types.read_project(Base.active_project())
+catch
+    nothing
+end)
 _projectname(pkg) = pkg.name
 # Pkg in julia 1.0 returns a dict
 _projectname(pkg::Dict) = pkg["name"]
@@ -67,7 +67,7 @@ If it is found return its path, otherwise issue a warning and return
 The function stops searching if it hits either the home directory or
 the root directory.
 """
-function findproject(dir::AbstractString = pwd())
+function findproject(dir::AbstractString=pwd())
     # look for project file in current dir and parents
     home = homedir()
     while true
@@ -81,8 +81,8 @@ function findproject(dir::AbstractString = pwd())
         old, dir = dir, dirname(dir)
         dir == old && break
     end
-    @warn "DrWatson could not find find a project file by recursively checking "*
-    "given `dir` and its parents. Returning `nothing` instead.\n(given dir: $dir)"
+    @warn "DrWatson could not find find a project file by recursively checking " *
+          "given `dir` and its parents. Returning `nothing` instead.\n(given dir: $dir)"
     return nothing
 end
 
@@ -128,7 +128,7 @@ it matches the `name`.
     by your activated project (besides `DrWatson`, since this is impossible
     to do using `quickactivate`).
 """
-function quickactivate(path, name = nothing)
+function quickactivate(path, name=nothing)
     projectpath = findproject(path)
     if projectpath === nothing || projectpath == dirname(Base.active_project())
         return nothing
@@ -136,8 +136,8 @@ function quickactivate(path, name = nothing)
     Pkg.activate(projectpath)
     if !(name === nothing) && projectname() != name
         error(
-        "The activated project did not match asserted name. Current project "*
-        "name is $(projectname()) while the asserted name is $name."
+            "The activated project did not match asserted name. Current project " *
+            "name is $(projectname()) while the asserted name is $name."
         )
     end
     return nothing
@@ -193,9 +193,9 @@ end
     @quickcativate "Whatever"
     ```
 """
-macro quickactivate(name = nothing)
+macro quickactivate(name=nothing)
     dir = get_dir_from_source(__source__.file)
-    :(quickactivate($dir,$name))
+    :(quickactivate($dir, $name))
 end
 
 """
@@ -270,17 +270,21 @@ The new project remains activated for you to immediately add packages.
   that project folder structure is maintained when the directory is cloned (because
   empty folders are not pushed to a remote). Only used when `git = true`.
 """
-function initialize_project(path, name = default_name_from_path(path);
-        force = false, readme = true, authors = nothing,
-        git = true, placeholder = false, template = DEFAULT_TEMPLATE,
-        add_test = true, add_docs = false,
-        github_name = "PutYourGitHubNameHere"
-    )
-    if git == false; placeholder = false; end
-    if add_docs == true; add_test = true; end
+function initialize_project(path, name=default_name_from_path(path);
+    force=false, readme=true, authors=nothing,
+    git=true, placeholder=false, template=DEFAULT_TEMPLATE,
+    add_test=true, add_docs=false,
+    github_name="PutYourGitHubNameHere"
+)
+    if git == false
+        placeholder = false
+    end
+    if add_docs == true
+        add_test = true
+    end
     if add_docs == true && github_name == "PutYourGitHubNameHere"
-        @warn "Docs will be generated but `github_name` is not set. "*
-        "You'd need to manually change paths to GitHub in `make.jl`."
+        @warn "Docs will be generated but `github_name` is not set. " *
+              "You'd need to manually change paths to GitHub in `make.jl`."
     end
     # Set up and potentially clean path
     mkpath(path)
@@ -288,7 +292,7 @@ function initialize_project(path, name = default_name_from_path(path);
     if length(rd) != 0
         if force
             for d in rd
-                rm(joinpath(path, d), recursive = true, force = true)
+                rm(joinpath(path, d), recursive=true, force=true)
             end
         else
             error("Project path is not empty!")
@@ -308,8 +312,8 @@ function initialize_project(path, name = default_name_from_path(path);
                 LibGit2.delete_branch(LibGit2.GitReference(repo, "refs/heads/$default"))
             end
         catch err
-            @warn "We couldn't rename default branch to `main`, please do it manually. "*
-            "We got error: \n$(sprint(showerror, err))"
+            @warn "We couldn't rename default branch to `main`, please do it manually. " *
+                  "We got error: \n$(sprint(showerror, err))"
         end
     end
     # Add packages
@@ -346,8 +350,14 @@ function initialize_project(path, name = default_name_from_path(path);
     # chmod is needed, as the file permissions are not
     # set correctly when adding the package with `add`.
     # First, add all default files
-    cp(defaultdir("gitignore.txt"), pathdir(".gitignore"))
-    chmod(pathdir(".gitignore"), 0o644)
+
+    function create_gitignore(gitignore_path)
+        cp(defaultdir("gitignore.txt"), gitignore_path)
+        chmod(gitignore_path, 0o644)
+    end
+
+    create_gitignore(pathdir(".gitignore"))
+
     cp(defaultdir("gitattributes.txt"), pathdir(".gitattributes"))
     chmod(pathdir(".gitattributes"), 0o644)
 
@@ -364,7 +374,7 @@ function initialize_project(path, name = default_name_from_path(path);
     pro = read(pathdir("Project.toml"), String)
     w = "name = \"$name\"\n"
     if !(authors === nothing)
-        w *= "authors = "*sprint(show, vecstring(authors))*"\n"
+        w *= "authors = " * sprint(show, vecstring(authors)) * "\n"
     end
     w *= compat_entry()
     write(pathdir("Project.toml"), w, pro)
@@ -374,9 +384,9 @@ function initialize_project(path, name = default_name_from_path(path);
         ci_file = rename(defaultdir("ci.yml"))
         if add_docs
             docs_file = rename(defaultdir("ci_docs.yml"))
-            ci_file = ci_file*'\n'*docs_file
+            ci_file = ci_file * '\n' * docs_file
             write(pathdir("docs", "make.jl"),
-                replace(rename(defaultdir("make.jl")), "PutYourGitHubNameHere"=>github_name)
+                replace(rename(defaultdir("make.jl")), "PutYourGitHubNameHere" => github_name)
             )
             write(pathdir("docs", "src", "index.md"), rename(defaultdir("index.md")))
         end
@@ -400,8 +410,8 @@ function insert_folders(path, template, placeholder)
     return folders
 end
 function _recursive_folder_insertion!(
-        path, p::String, placeholder, folders
-    )
+    path, p::String, placeholder, folders
+)
     folder = joinpath(path, p)
     mkpath(folder)
     push!(folders, folder)
@@ -410,16 +420,16 @@ function _recursive_folder_insertion!(
     end
 end
 function _recursive_folder_insertion!(
-        path, p::Pair{String, <:Any}, placeholder, folders
-    )
+    path, p::Pair{String,<:Any}, placeholder, folders
+)
     path = joinpath(path, p[1])
     for z in p[2]
         _recursive_folder_insertion!(path, z, placeholder, folders)
     end
 end
 function _recursive_folder_insertion!(
-        path, p::Pair{String, String}, placeholder, folders
-    )
+    path, p::Pair{String,String}, placeholder, folders
+)
     path = joinpath(path, p[1])
     _recursive_folder_insertion!(path, p[2], placeholder, folders)
 end
@@ -458,9 +468,9 @@ It ensures the project structure is copied whenever you clone the project.
 This doesn't commit any files within the folder.
 """
 
-function DEFAULT_README(name, authors = nothing;
-        add_docs = false, github_name = "PutYourGitHubNameHere"
-    )
+function DEFAULT_README(name, authors=nothing;
+    add_docs=false, github_name="PutYourGitHubNameHere"
+)
     s = """
     # $name
 
@@ -471,7 +481,7 @@ function DEFAULT_README(name, authors = nothing;
 
     """
     if !(authors === nothing)
-        s *= "It is authored by "*join(vecstring(authors), ", ")*".\n\n"
+        s *= "It is authored by " * join(vecstring(authors), ", ") * ".\n\n"
     end
 
     s *= """
