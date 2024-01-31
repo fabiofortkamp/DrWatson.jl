@@ -13,7 +13,7 @@ Pkg.activate()
 @show Base.load_path_expand("@v$(VERSION.major).$(VERSION.minor)")
 # @test DrWatson.is_standard_julia_project() # we cant test this on CI
 
-initialize_project(path; force = true)
+initialize_project(path; force=true)
 repo = LibGit2.GitRepo(path)
 @test LibGit2.getconfig(repo, "user.name", "") == global_user_name
 @test LibGit2.getconfig(repo, "user.email", "") == global_user_email
@@ -51,7 +51,7 @@ end
 
 @test_throws ErrorException initialize_project(path, name)
 
-initialize_project(path, name; force = true, authors = ["George", "Nick"])
+initialize_project(path, name; force=true, authors=["George", "Nick"])
 repo = LibGit2.GitRepo(path)
 @test LibGit2.getconfig(repo, "user.name", "") == global_user_name
 @test LibGit2.getconfig(repo, "user.email", "") == global_user_email
@@ -67,7 +67,7 @@ z = read(joinpath(path, "Project.toml"), String)
 z = read(joinpath(path, "scripts", "intro.jl"), String)
 @test occursin("@quickactivate", z)
 
-initialize_project(path, name; force = true, authors = "Sophia", git = false)
+initialize_project(path, name; force=true, authors="Sophia", git=false)
 @test !isdir(joinpath(path, ".git"))
 z = read(joinpath(path, "Project.toml"), String)
 @test occursin("[\"Sophia\"]", z)
@@ -86,12 +86,23 @@ cd()
 
 # Test templates
 t1 = ["data", "documents" => ["a", "b"]]
-initialize_project(path, name; force = true, git = false, template = t1)
+initialize_project(path, name; force=true, git=false, template=t1)
 
 @test ispath(joinpath(path, "data"))
 @test ispath(joinpath(path, "documents"))
 @test ispath(joinpath(path, "documents", "a"))
 @test !ispath(joinpath(path, "src"))
 
-rm(joinpath(@__DIR__, path); recursive = true, force = true)
+# Test .gitignore templates
+
+initialize_project(path, name; force=true, git=true,
+    folders_to_gitignore=["videos"])
+gitignore_path = joinpath(path, ".gitignore")
+@test ispath(gitignore_path)
+gitignore_lines = readlines(gitignore_path)
+@test "/videos" ∈ gitignore_lines
+@test "/notebooks" ∉ gitignore_lines
+
+
+rm(joinpath(@__DIR__, path); recursive=true, force=true)
 @test !isdir(joinpath(@__DIR__, path))
